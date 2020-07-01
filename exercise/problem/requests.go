@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"os"
+	"sync"
+	"time"
 )
 
 func main() {
@@ -14,13 +17,23 @@ func main() {
 		"https://hangouts.google.com",
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(sites))
+	ctx, cancel := context.WithCancel(context.Background())
 	for _, site := range sites {
-		go func(site string) {
+		go func(ctx context.Context, site string) {
+			defer wg.Done()
 			res, err := http.Get(site)
 			if err != nil {
+				cancel()
 			}
-
-			io.WriteString(os.Stdout, res.Status+"\n")
-		}(site)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Nanosecond):
+				io.WriteString(os.Stdout, res.Status+"\n")
+			}
+		}(ctx, site)
 	}
+	wg.Wait()
 }
