@@ -1,6 +1,9 @@
 package users
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type UserStorage interface {
 	Add(user User) error
@@ -12,21 +15,22 @@ type storage struct {
 }
 
 func NewUserStorage() UserStorage {
-	return storage{
+	// TODO add singleton pattern (sync.Once)
+	return &storage{
 		users: []User{},
 	}
 }
 
-func (s storage) Add(user User) error {
+func (s *storage) Add(user User) error {
 	for _, u := range s.users {
 		if u.GetName() == user.GetName() {
-			return errors.New("user \"%s\" already exists")
+			return errors.New(fmt.Sprintf("user \"%s\" already exists", user.GetName())) // TODO: send to client
 		}
 	}
-	s.users = append(s.users, user)
+	s.users = append(s.users, user) // TODO: use mutex to avoid race condition
 	return nil
 }
 
-func (s storage) FetchAll() []User {
+func (s *storage) FetchAll() []User {
 	return s.users
 }

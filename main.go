@@ -8,7 +8,7 @@ import (
 	userslib "github.com/cartrujillosa/GoCourse/project/users"
 )
 
-func main() {
+func main() { // TODO: shutdown friendly
 	listener, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		log.Fatalf("unable to start server: %s", err)
@@ -26,7 +26,7 @@ func main() {
 			continue
 		}
 
-		user, err := userslib.NewUser("carla", "canarias", conn)
+		user, err := userslib.NewUser("carla", "canarias", conn) // TODO: user name as input
 		if err != nil {
 			log.Println(err)
 			continue
@@ -45,6 +45,7 @@ func main() {
 					log.Println(err)
 					continue
 				}
+				fmt.Println(users.FetchAll())
 
 				for _, anyUser := range users.FetchAll() {
 					if anyUser.RemoteAddr() != user.RemoteAddr() {
