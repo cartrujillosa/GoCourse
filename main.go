@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
-	"io"
+	"fmt"
 	"log"
 	"net"
+
+	userslib "github.com/cartrujillosa/GoCourse/project/users"
 )
 
 func main() {
@@ -16,7 +17,7 @@ func main() {
 
 	log.Printf("Chat server started on :8888")
 
-	var users []net.Conn
+	users := userslib.NewUserStorage()
 
 	for {
 		conn, err := listener.Accept()
@@ -25,21 +26,29 @@ func main() {
 			continue
 		}
 
-		io.WriteString(conn, "Bienvenido al chat de GDG Marbella!\n")
+		user, err := userslib.NewUser("carla", "canarias", conn)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 
-		users = append(users, conn)
+		if err := users.Add(user); err != nil {
+			log.Println(err)
+			continue
+		}
+		user.ReceiveMessage(fmt.Sprintf("Hola %s, bienvenido al chat de GDG Marbella!\n", user.GetName()))
 
 		go func() {
 			for {
-				msg, err := bufio.NewReader(conn).ReadString('\n')
+				msg, err := user.SendMessage()
 				if err != nil {
 					log.Println(err)
 					continue
 				}
 
-				for _, user := range users {
-					if user.RemoteAddr().String() != conn.RemoteAddr().String() {
-						io.WriteString(user, msg)
+				for _, anyUser := range users.FetchAll() {
+					if anyUser.RemoteAddr() != user.RemoteAddr() {
+						user.ReceiveMessage(msg)
 					}
 				}
 			}
