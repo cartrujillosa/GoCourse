@@ -17,9 +17,12 @@ func main() {
 	go func() {
 		for {
 			msg, err := bufio.NewReader(conn).ReadString('\n')
-			if err != nil {
+			if err != nil && err.Error() == "EOF" {
+				log.Println("chat closed")
+				return
+			} else if err != nil {
 				log.Println(err)
-				continue
+				return
 			}
 			io.WriteString(os.Stdout, msg)
 

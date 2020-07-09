@@ -12,6 +12,7 @@ import (
 type Chat interface {
 	SendMessage(from userslib.User, msg string)
 	RegisterUser(user userslib.User) error
+	RemoveUser(user userslib.User)
 	Listener() net.Listener
 	Broadcast(msg string)
 	Close()
@@ -61,6 +62,17 @@ func (c *chat) RegisterUser(user userslib.User) error {
 	}
 	c.users = append(c.users, user) // TODO: use mutex to avoid race condition
 	return nil
+}
+
+func (c *chat) RemoveUser(user userslib.User) {
+	for i, u := range c.users {
+		if user.Name() == u.Name() {
+			c.users[len(c.users)-1], c.users[i] = c.users[i], c.users[len(c.users)-1]
+			c.users = c.users[:len(c.users)-1]
+			return
+		}
+	}
+	return
 }
 
 func (c *chat) Listener() net.Listener {

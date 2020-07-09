@@ -8,10 +8,11 @@ import (
 	"net"
 	"strings"
 
+	"github.com/cartrujillosa/GoCourse/project/users"
 	userslib "github.com/cartrujillosa/GoCourse/project/users"
 )
 
-func main() { // TODO: shutdown friendly
+func main() { // TODO: shutdown gracefully
 
 	chat := NewChat(":8888")
 	defer chat.Close()
@@ -33,8 +34,11 @@ func main() { // TODO: shutdown friendly
 			go func() {
 				for {
 					msg, err := user.GetMessage()
-					if err != nil {
-						log.Println(err)
+					if err != nil && err.Error() == "EOF" {
+						chat.RemoveUser(user)
+						return
+					} else if err != nil {
+						log.Print(err)
 						return
 					}
 					chat.SendMessage(user, msg)
@@ -46,26 +50,32 @@ func main() { // TODO: shutdown friendly
 }
 
 func registerUser(chat Chat, conn *net.Conn, registeredUsers chan userslib.User) {
-	var response *string
-	if response = ask(conn, "¿cómo te llamas?\n"); response == nil {
-		return
-	}
-	name := *response
-	if response = ask(conn, "¿dónde vives?\n"); response == nil {
-		return
-	}
-	location := *response
+	var err error
+	var user users.User
+	for {
+		var response *string
+		if response = ask(conn, "¿cómo te llamas?\n"); response == nil {
+			continue
+		}
+		name := *response
+		if response = ask(conn, "¿dónde vives?\n"); response == nil {
+			continue
+		}
+		location := *response
 
-	user, err := userslib.NewUser(name, location, conn)
-	if err != nil {
-		log.Println(err)
-		return
+		user, err = userslib.NewUser(name, location, conn)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		if err := chat.RegisterUser(user); err != nil {
+			log.Println(err)
+			continue
+		} else {
+			break
+		}
 	}
 
-	if err := chat.RegisterUser(user); err != nil {
-		log.Println(err)
-		return
-	}
 	user.ReceiveMessage(fmt.Sprintf("Hola %s, bienvenido al chat de GDG Marbella!\n", user.Name()))
 	chat.Broadcast(fmt.Sprintf("Den la bienvenida a %s que viene con fuerza desde %s\n", user.Name(), user.Location()))
 	registeredUsers <- user
